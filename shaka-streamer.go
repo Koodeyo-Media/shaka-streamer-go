@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+
+	"github.com/Koodeyo-Media/shaka-streamer-go/binaries"
 )
 
 func main() {
@@ -13,8 +15,14 @@ func main() {
 	output := flag.String("output", "output_files", "The output folder to write files to, or an HTTP or HTTPS URL where files will be PUT. Used even if uploading to cloud storage.")
 	skipDepsCheck := flag.Bool("skip-deps-check", false, "Skip checks for dependencies and their versions. This can be useful for testing pre-release versions of FFmpeg or Shaka Packager.")
 	useSystemBinaries := flag.Bool("use-system-binaries", false, "Use FFmpeg, FFprobe and Shaka Packager binaries found in PATH instead of the ones offered by Shaka Streamer.")
+	setup := flag.Bool("setup", false, "Downloads package containing FFmpeg, FFprobe, and Shaka Packager static builds.")
 
 	flag.Parse()
+
+	if *setup {
+		binaries.Setup()
+		return
+	}
 
 	if *inputConfig == "" {
 		fmt.Println("The path to the input config file is required.")

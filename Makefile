@@ -1,4 +1,4 @@
-.PHONY: build test
+.PHONY: build test setup
 
 BINARY_NAME = shaka-streamer
 BUILD_DIR = $(PWD)/build
@@ -9,3 +9,6 @@ build:
 
 test: 
 	go test -v ./...
+
+setup: 
+	go run shaka-streamer.go --setup
