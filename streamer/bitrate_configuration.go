@@ -2,7 +2,6 @@ package streamer
 
 import (
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 )
@@ -187,7 +186,7 @@ type VideoResolution struct {
 
 		  By default, the max frame rate is unlimited.
 	*/
-	MaxFrameRate float64 `json:"max_frame_rate" default:"math.MaxFloat64"`
+	MaxFrameRate float64 `json:"max_frame_rate" default:"math.Inf"`
 
 	Bitrates map[VideoCodecName]string `json:"bitrates"`
 }
@@ -242,7 +241,7 @@ var DefaultVideoResolutions = map[VideoResolutionName]*VideoResolution{
 		HEVC: "1M",
 		AV1:  "512k",
 	}),
-	"720p-hfr": NewVideoResolution(1280, 720, math.Inf(1), map[VideoCodecName]string{
+	"720p-hfr": NewVideoResolution(1280, 720, 0, map[VideoCodecName]string{
 		H264: "3M",
 		VP9:  "2M",
 		HEVC: "2M",
@@ -254,7 +253,7 @@ var DefaultVideoResolutions = map[VideoResolutionName]*VideoResolution{
 		HEVC: "2M",
 		AV1:  "850k",
 	}),
-	"1080p-hfr": NewVideoResolution(1920, 1080, math.Inf(1), map[VideoCodecName]string{
+	"1080p-hfr": NewVideoResolution(1920, 1080, 0, map[VideoCodecName]string{
 		H264: "5M",
 		VP9:  "3M",
 		HEVC: "3M",
@@ -266,7 +265,7 @@ var DefaultVideoResolutions = map[VideoResolutionName]*VideoResolution{
 		HEVC: "6M",
 		AV1:  "3.5M",
 	}),
-	"1440p-hfr": NewVideoResolution(2560, 1440, math.Inf(1), map[VideoCodecName]string{
+	"1440p-hfr": NewVideoResolution(2560, 1440, 0, map[VideoCodecName]string{
 		H264: "14M",
 		VP9:  "9M",
 		HEVC: "9M",
@@ -278,7 +277,7 @@ var DefaultVideoResolutions = map[VideoResolutionName]*VideoResolution{
 		HEVC: "12M",
 		AV1:  "6M",
 	}),
-	"4k-hfr": NewVideoResolution(4096, 2160, math.Inf(1), map[VideoCodecName]string{
+	"4k-hfr": NewVideoResolution(4096, 2160, 0, map[VideoCodecName]string{
 		H264: "25M",
 		VP9:  "18M",
 		HEVC: "18M",
@@ -290,7 +289,7 @@ var DefaultVideoResolutions = map[VideoResolutionName]*VideoResolution{
 		HEVC: "24M",
 		AV1:  "12M",
 	}),
-	"8k-hfr": NewVideoResolution(8192, 4320, math.Inf(1), map[VideoCodecName]string{
+	"8k-hfr": NewVideoResolution(8192, 4320, 0, map[VideoCodecName]string{
 		H264: "60M",
 		VP9:  "36M",
 		HEVC: "36M",

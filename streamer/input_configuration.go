@@ -2,7 +2,6 @@ package streamer
 
 import (
 	"fmt"
-	"math"
 	"reflect"
 	"runtime"
 )
@@ -120,7 +119,6 @@ type Input struct {
 			Otherwise, it will default to 'und' (undetermined).
 	*/
 	Language string `json:"language"`
-
 	/*
 		The start time of the slice of the input to use.
 
@@ -186,14 +184,14 @@ func (i *Input) Init() {
 			i.IsInterlaced = GetInterlaced(i)
 		}
 
-		if math.IsNaN(i.FrameRate) {
-			i.FrameRate = *GetFrameRate(i)
+		if i.FrameRate <= 0 {
+			i.FrameRate = GetFrameRate(i)
 			// FrameRate is required
 			i.requireField("FrameRate")
 		}
 
 		if len(i.Resolution) == 0 {
-			i.Resolution = *GetResolution(i)
+			i.Resolution = GetResolution(i)
 			// Resolution is required
 			i.requireField("Resolution")
 		}
@@ -202,15 +200,15 @@ func (i *Input) Init() {
 	if i.MediaType == AUDIO {
 		if len(i.Language) == 0 {
 			language := GetLanguage(i)
-			if language != nil {
-				i.Language = *language
+			if len(language) > 0 {
+				i.Language = language
 			} else {
 				i.Language = "und"
 			}
 		}
 
 		if len(i.ChannelLayout) == 0 {
-			i.ChannelLayout = *GetChannelLayout(i)
+			i.ChannelLayout = GetChannelLayout(i)
 			// ChannelLayout is required
 			i.requireField("ChannelLayout")
 		}
@@ -219,8 +217,8 @@ func (i *Input) Init() {
 	if i.MediaType == TEXT {
 		if len(i.Language) == 0 {
 			language := GetLanguage(i)
-			if language != nil {
-				i.Language = *language
+			if len(language) > 0 {
+				i.Language = language
 			} else {
 				i.Language = "und"
 			}
@@ -261,7 +259,7 @@ Get an FFmpeg stream specifier for this input.
 
 	See also http://ffmpeg.org/ffmpeg.html#Stream-specifiers
 */
-func (i *Input) getStreamSpecifier() string {
+func (i *Input) GetStreamSpecifier() string {
 	if i.MediaType == VIDEO {
 		return fmt.Sprintf("v:%d", i.TrackNum)
 	} else if i.MediaType == AUDIO {
@@ -283,7 +281,7 @@ these common cases.
 Note that for types which support autodetect, these arguments must be
 understood by ffprobe as well as ffmpeg.
 */
-func (i *Input) getInputArgs() []string {
+func (i *Input) GetInputArgs() []string {
 	argsMatrix := map[InputType]map[string][]string{
 		WEBCAM: {
 			"Linux": []string{
@@ -349,11 +347,11 @@ func (i *Input) disallowField(fieldName string, reason string) {
 	}
 }
 
-func (i *Input) getResolution() *VideoResolution {
+func (i *Input) GetResolution() *VideoResolution {
 	return NewBitrateConfig().GetResolutionValue(i.Resolution)
 }
 
-func (i *Input) getChannelLayout() *AudioChannelLayout {
+func (i *Input) GetChannelLayout() *AudioChannelLayout {
 	return NewBitrateConfig().GetChannelLayoutValue(i.ChannelLayout)
 }
 
@@ -365,7 +363,7 @@ type SinglePeriod struct {
 // An object representing the entire input config to Shaka Streamer.
 type InputConfig struct {
 	// A list of SinglePeriod objects
-	MultiperiodInputsList []SinglePeriod `json:"multiperiod_inputs_list"`
+	MultiPeriodInputsList []SinglePeriod `json:"multiperiod_inputs_list"`
 
 	// A list of Input objects
 	Inputs []Input `json:"inputs"`
@@ -380,16 +378,16 @@ A constructor to check that either inputs or mutliperiod_inputs_list is provided
 	because it does not check for this 'exclusive or-ing' relationship between fields
 */
 func NewInputConfig(dictionary map[string]interface{}) *InputConfig {
-	_, hasInputs := dictionary["inputs"]
-	_, hasMultiperiodInputsList := dictionary["multiperiod_inputs_list"]
+	_, hasInputs := dictionary["Inputs"]
+	_, hasMultiPeriodInputsList := dictionary["MultiPeriodInputsList"]
 
 	//  Because these fields are not marked as required at the class level
 	//  , we need to check ourselves that one of them is provided.
-	if hasInputs && hasMultiperiodInputsList {
+	if hasInputs && hasMultiPeriodInputsList {
 		panic(fmt.Sprintf("In InputConfig, these fields are conflicting: %s and %s Consider using only one of them.", "Inputs", "MultiperiodInputsList"))
 	}
 
-	if !hasInputs && !hasMultiperiodInputsList {
+	if !hasInputs && !hasMultiPeriodInputsList {
 		panic(fmt.Sprintf("InputConfig is missing a required field. Use exactly one of these fields: a %s or a %s", "Inputs", "MultiperiodInputsList"))
 	}
 

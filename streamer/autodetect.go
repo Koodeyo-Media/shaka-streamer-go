@@ -43,13 +43,16 @@ func probe(i *Input, field string) (string, error) {
 	}
 
 	// Add any required input arguments for this input type
-	args = append(args, i.getInputArgs()...)
+	args = append(args, i.GetInputArgs()...)
 
 	args = append(args,
 		// Specifically, this stream
-		"-select_streams", i.getStreamSpecifier(),
+		"-select_streams", i.GetStreamSpecifier(),
 		// Show the needed metadata only
 		"-show_entries", field,
+		// Don't show logs
+		"-loglevel",
+		"quiet",
 		// Print the metadata in a compact form, which is easier to parse
 		"-of", "compact=p=0:nk=1",
 	)
@@ -83,14 +86,14 @@ func probe(i *Input, field string) (string, error) {
 // IsPresent returns true if the stream for this input is indeed found.
 // If we can't probe this input type, assume it is present.
 func IsPresent(i *Input) bool {
-	_, err := probe(i, "stream=index")
-	return err == nil
+	s, err := probe(i, "stream=index")
+	return err == nil && len(s) > 0
 }
 
 // GetLanguage returns the autodetected the language of the input.
-func GetLanguage(i *Input) *string {
+func GetLanguage(i *Input) string {
 	l, _ := probe(i, "stream_tags=language")
-	return &l
+	return l
 }
 
 // GetInterlaced returns true if we detect that the input is interlaced.
@@ -105,15 +108,12 @@ func GetInterlaced(i *Input) bool {
 	// https://www.ffmpeg.org/ffmpeg-codecs.html under the description of the
 	// field_order option.  Anything else (including None) should be considered
 	// progressive (non-interlaced) video.
-
 	return ContainsString([]string{"tt", "bb", "tb", "bt"}, s)
 }
 
-func GetFrameRate(i *Input) *float64 {
-	s, err := probe(i, "stream=avg_frame_rate")
-	if err != nil || len(s) < 1 {
-		return nil
-	}
+func GetFrameRate(i *Input) float64 {
+	s, _ := probe(i, "stream=avg_frame_rate")
+
 	// This string is the framerate in the form of a fraction, such as '24/1' or
 	// '30000/1001'. Occasionally, there is a pipe after the framerate, such as
 	// '32700/1091|'. We must split it into pieces and do the division to get a
@@ -121,7 +121,7 @@ func GetFrameRate(i *Input) *float64 {
 	pieces := strings.Split(strings.TrimSuffix(s, "|"), "/")
 	if len(pieces) == 1 {
 		frameRate, _ := strconv.ParseFloat(pieces[0], 64)
-		return &frameRate
+		return frameRate
 	} else {
 		numerator, _ := strconv.ParseFloat(pieces[0], 64)
 		denominator, _ := strconv.ParseFloat(pieces[1], 64)
@@ -135,18 +135,14 @@ func GetFrameRate(i *Input) *float64 {
 			frameRate /= 2.0
 		}
 
-		return &frameRate
+		return frameRate
 	}
 }
 
 // Returns the autodetected resolution of the input.
-func GetResolution(i *Input) *VideoResolutionName {
+func GetResolution(i *Input) VideoResolutionName {
 	// resolutionString
-	rs, err := probe(i, "stream=width,height")
-
-	if err != nil {
-		return nil
-	}
+	rs, _ := probe(i, "stream=width,height")
 
 	// This is the resolution of the video in the form of 'WIDTH|HEIGHT'.  For
 	// example, '1920|1080'.  Occasionally, there is a pipe after the resolution,
@@ -159,30 +155,29 @@ func GetResolution(i *Input) *VideoResolutionName {
 
 	for key, bucket := range DefaultVideoResolutions {
 		// The first bucket this fits into is the one.
-		if width <= bucket.MaxWidth && height <= bucket.MaxHeight && i.FrameRate <= bucket.MaxFrameRate {
-			return &key
+		if width == bucket.MaxWidth && height <= bucket.MaxHeight && i.FrameRate <= bucket.MaxFrameRate {
+			return key
 		}
 	}
 
-	return nil
+	return ""
 }
 
 // Returns the autodetected channel count of the input.
-func GetChannelLayout(i *Input) *AudioChannelLayoutName {
+func GetChannelLayout(i *Input) AudioChannelLayoutName {
 	// channelCountString
-	cs, err := probe(i, "stream=channels")
-
-	if err != nil {
-		return nil
-	}
+	cs, _ := probe(i, "stream=channels")
 
 	// channelCount
 	cc, _ := strconv.Atoi(cs)
-	for key, bucket := range DefaultAudioChannelLayouts {
-		if cc <= bucket.MaxChannels {
-			return &key
+
+	if cc > 0 {
+		for key, bucket := range DefaultAudioChannelLayouts {
+			if cc <= bucket.MaxChannels {
+				return key
+			}
 		}
 	}
 
-	return nil
+	return ""
 }

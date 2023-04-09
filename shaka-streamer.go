@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/Koodeyo-Media/shaka-streamer-go/binaries"
+	"github.com/Koodeyo-Media/shaka-streamer-go/tests"
 )
 
 func main() {
@@ -16,11 +17,19 @@ func main() {
 	skipDepsCheck := flag.Bool("skip-deps-check", false, "Skip checks for dependencies and their versions. This can be useful for testing pre-release versions of FFmpeg or Shaka Packager.")
 	useSystemBinaries := flag.Bool("use-system-binaries", false, "Use FFmpeg, FFprobe and Shaka Packager binaries found in PATH instead of the ones offered by Shaka Streamer.")
 	setup := flag.Bool("setup", false, "Downloads package containing FFmpeg, FFprobe, and Shaka Packager static builds.")
+	test_assets := flag.Bool("test-assets", false, "Downloads all the assets for tests.")
 
 	flag.Parse()
 
 	if *setup {
 		binaries.Setup()
+		return
+	}
+
+	if *test_assets {
+		if err := tests.FetchCloudAssets(); err != nil {
+			fmt.Println(err)
+		}
 		return
 	}
 
