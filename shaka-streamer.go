@@ -3,9 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/Koodeyo-Media/shaka-streamer-go/binaries"
+	"github.com/Koodeyo-Media/shaka-streamer-go/streamer"
 	"github.com/Koodeyo-Media/shaka-streamer-go/tests"
+	"gopkg.in/yaml.v3"
 )
 
 func main() {
@@ -50,4 +54,48 @@ func main() {
 	fmt.Printf("Output: %s\n", *output)
 	fmt.Printf("Skip Deps Check: %t\n", *skipDepsCheck)
 	fmt.Printf("Use System Binaries: %t\n", *useSystemBinaries)
+
+	inputConfigData, err := os.ReadFile(*inputConfig)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error reading input config file: %v\n", err)
+		os.Exit(1)
+	}
+
+	var inputConfigDict streamer.InputConfig
+	if err := yaml.Unmarshal(inputConfigData, &inputConfigDict); err != nil {
+		fmt.Fprintf(os.Stderr, "Error parsing input config file: %v\n", err)
+		os.Exit(1)
+	}
+
+	pipelineConfigData, err := os.ReadFile(*pipelineConfig)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error reading pipeline config file: %v\n", err)
+		os.Exit(1)
+	}
+
+	var pipelineConfigDict streamer.PipelineConfig
+	if err := yaml.Unmarshal(pipelineConfigData, &pipelineConfigDict); err != nil {
+		fmt.Fprintf(os.Stderr, "Error parsing pipeline config file: %v\n", err)
+		os.Exit(1)
+	}
+
+	var bitrateConfigDict streamer.BitrateConfig
+	if *bitrateConfig != "" {
+		bitrateConfigData, err := os.ReadFile(*bitrateConfig)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error reading bitrate config file: %v\n", err)
+			os.Exit(1)
+		}
+		if err := yaml.Unmarshal(bitrateConfigData, &bitrateConfigDict); err != nil {
+			fmt.Fprintf(os.Stderr, "Error parsing bitrate config file: %v\n", err)
+			os.Exit(1)
+		}
+	}
+
+	if *cloudURL != "" {
+		if !strings.HasPrefix(*cloudURL, "gs://") && !strings.HasPrefix(*cloudURL, "s3://") {
+			fmt.Fprintln(os.Stderr, "Invalid cloud URL! Only gs:// and s3:// URLs are supported")
+			os.Exit(1)
+		}
+	}
 }

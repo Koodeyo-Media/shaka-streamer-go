@@ -153,9 +153,16 @@ func GetResolution(i *Input) VideoResolutionName {
 	width, _ := strconv.Atoi(ra[0])
 	height, _ := strconv.Atoi(ra[1])
 
-	for key, bucket := range DefaultVideoResolutions {
+	for key, bucket := range *DefaultVideoResolutions {
+		size := width == bucket.MaxWidth && height <= bucket.MaxHeight
+
 		// The first bucket this fits into is the one.
-		if width == bucket.MaxWidth && height <= bucket.MaxHeight && i.FrameRate <= bucket.MaxFrameRate {
+		if size && i.FrameRate <= bucket.MaxFrameRate {
+			return key
+		}
+
+		// high frame rate
+		if size && i.FrameRate > 30 && bucket.MaxFrameRate == 0 {
 			return key
 		}
 	}
@@ -172,7 +179,7 @@ func GetChannelLayout(i *Input) AudioChannelLayoutName {
 	cc, _ := strconv.Atoi(cs)
 
 	if cc > 0 {
-		for key, bucket := range DefaultAudioChannelLayouts {
+		for key, bucket := range *DefaultAudioChannelLayouts {
 			if cc <= bucket.MaxChannels {
 				return key
 			}

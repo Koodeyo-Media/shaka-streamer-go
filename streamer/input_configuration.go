@@ -2,8 +2,10 @@ package streamer
 
 import (
 	"fmt"
-	"reflect"
 	"runtime"
+
+	"github.com/creasty/defaults"
+	"gopkg.in/dealancer/validate.v2"
 )
 
 // Define a new type called InputType, which is essentially a string.
@@ -30,7 +32,7 @@ const (
 // An object representing a single input stream to Shaka Streamer.
 type Input struct {
 	// The type of the input.
-	InputType InputType `json:"input_type" default:"FILE"`
+	InputType InputType `yaml:"input_type"`
 
 	/*
 		Name of the input.
@@ -50,7 +52,7 @@ type Input struct {
 		 the environment variable $SHAKA_STREAMER_EXTERNAL_COMMAND_OUTPUT, which Shaka
 		 Streamer set to the path to the output pipe.
 	*/
-	Name string `json:"name" required:"true"`
+	Name string `yaml:"name" validate:"empty=false"`
 
 	/*
 		Extra input arguments needed by FFmpeg to understand the input.
@@ -60,10 +62,10 @@ type Input struct {
 
 		This string will be parsed using shell quoting rules.
 	*/
-	ExtraInputArgs string `json:"extra_input_args" default:""`
+	ExtraInputArgs string `yaml:"extra_input_args" default:""`
 
 	// The media type of the input stream.
-	MediaType MediaType `json:"media_type" required:"true"`
+	MediaType MediaType `yaml:"media_type" validate:"empty=false"`
 
 	/*
 		The frame rate of the input stream, in frames per second.
@@ -73,7 +75,7 @@ type Input struct {
 			Can be auto-detected for some input types, but may be required for others.
 			For example, required for input_type of 'external_command'.
 	*/
-	FrameRate float64 `json:"frame_rate"`
+	FrameRate float64 `yaml:"frame_rate"`
 
 	/*
 		The name of the input resolution (1080p, etc).
@@ -83,10 +85,10 @@ type Input struct {
 			Can be auto-detected for some input types, but may be required for others.
 			For example, required for input_type of 'external_command'.
 	*/
-	Resolution VideoResolutionName `json:"resolution"`
+	Resolution VideoResolutionName `yaml:"resolution"`
 
 	// The name of the input channel layout (stereo, surround, etc).
-	ChannelLayout AudioChannelLayoutName `json:"channel_layout"`
+	ChannelLayout AudioChannelLayoutName `yaml:"channel_layout"`
 
 	/*
 		The track number of the input.
@@ -98,7 +100,7 @@ type Input struct {
 		  If unspecified, track_num will default to 0, meaning the first track matching
 		  the media_type field will be used.
 	*/
-	TrackNum int `json:"track_num" default:"0"`
+	TrackNum int `yaml:"track_num" default:"0"`
 
 	/*
 		True if the input video is interlaced.
@@ -110,7 +112,7 @@ type Input struct {
 		  Can be auto-detected for some input types, but may be default to False for
 		  others.  For example, an input_type of 'external_command', it will default to False.
 	*/
-	IsInterlaced bool `json:"is_interlaced"`
+	IsInterlaced bool `yaml:"is_interlaced"`
 
 	/*
 		The language of an audio or text stream.
@@ -118,7 +120,7 @@ type Input struct {
 			With input_type set to 'file' or 'looped_file', this will be auto-detected.
 			Otherwise, it will default to 'und' (undetermined).
 	*/
-	Language string `json:"language"`
+	Language string `yaml:"language"`
 	/*
 		The start time of the slice of the input to use.
 
@@ -126,7 +128,7 @@ type Input struct {
 
 			Not supported with media_type of 'text'.
 	*/
-	StartTime string `json:"start_time"`
+	StartTime string `yaml:"start_time"`
 
 	/*
 		The end time of the slice of the input to use.
@@ -135,7 +137,7 @@ type Input struct {
 
 			Not supported with media_type of 'text'.
 	*/
-	EndTime string `json:"end_time"`
+	EndTime string `yaml:"end_time"`
 
 	/*
 		Optional value for a custom DRM label, which defines the encryption key
@@ -144,10 +146,10 @@ type Input struct {
 
 		  Applies to 'raw' encryption_mode only.
 	*/
-	DrmLabel string `json:"drm_label"`
+	DrmLabel string `yaml:"drm_label"`
 
 	// If set, no encryption of the stream will be made
-	SkipEncryption int `json:"skip_encryption"`
+	SkipEncryption int `yaml:"skip_encryption"`
 
 	/*
 		A list of FFmpeg filter strings to add to the transcoding of this input.
@@ -156,7 +158,7 @@ type Input struct {
 
 			Not supported with media_type of 'text'.
 	*/
-	Filters []string `json:"filters"`
+	Filters []string `yaml:"filters"`
 }
 
 func NewInput(inputType InputType, name string, mediaType MediaType, filters []string) *Input {
@@ -167,38 +169,71 @@ func NewInput(inputType InputType, name string, mediaType MediaType, filters []s
 		Filters:   filters,
 	}
 
-	i.Init()
+	// Manually set defaults.
+	if err := defaults.Set(i); err != nil {
+		panic(err)
+	}
 
 	return i
 }
 
-func (i *Input) Init() {
+// Set default values.
+// https://stackoverflow.com/questions/56049589/what-is-the-way-to-set-default-values-on-keys-in-lists-when-unmarshalling-yaml-i
+func (i *Input) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	// set defaults.
+	if err := defaults.Set(i); err != nil {
+		panic(err)
+	}
+
+	type plain Input
+
+	if err := unmarshal((*plain)(i)); err != nil {
+		return err
+	}
+
+	// validations
+	if err := validate.Validate(i); err != nil {
+		panic(err)
+	}
+
+	return nil
+}
+
+// Defaults
+func (i *Input) SetDefaults() {
+	// Input type
+	if defaults.CanUpdate(i.InputType) {
+		i.InputType = FILE
+	}
+
+	// Check if track is available
 	if !IsPresent(i) {
-		panic(fmt.Sprintf("Track %d was not found in %s", i.TrackNum, i.Name))
+		panic(NewInputNotFound(i))
 	}
 
 	if i.MediaType == VIDEO {
 		// These fields are required for video inputs.
 		// We will attempt to auto-detect them if possible.
-		if !i.IsInterlaced {
+
+		if defaults.CanUpdate(i.IsInterlaced) {
 			i.IsInterlaced = GetInterlaced(i)
 		}
 
-		if i.FrameRate <= 0 {
+		if defaults.CanUpdate(i.FrameRate) {
 			i.FrameRate = GetFrameRate(i)
 			// FrameRate is required
 			i.requireField("FrameRate")
 		}
 
-		if len(i.Resolution) == 0 {
+		if defaults.CanUpdate(i.Resolution) {
 			i.Resolution = GetResolution(i)
 			// Resolution is required
 			i.requireField("Resolution")
 		}
 	}
 
-	if i.MediaType == AUDIO {
-		if len(i.Language) == 0 {
+	if i.MediaType == AUDIO || i.MediaType == TEXT {
+		if defaults.CanUpdate(i.Language) {
 			language := GetLanguage(i)
 			if len(language) > 0 {
 				i.Language = language
@@ -206,8 +241,10 @@ func (i *Input) Init() {
 				i.Language = "und"
 			}
 		}
+	}
 
-		if len(i.ChannelLayout) == 0 {
+	if i.MediaType == AUDIO {
+		if defaults.CanUpdate(i.ChannelLayout) {
 			i.ChannelLayout = GetChannelLayout(i)
 			// ChannelLayout is required
 			i.requireField("ChannelLayout")
@@ -215,15 +252,6 @@ func (i *Input) Init() {
 	}
 
 	if i.MediaType == TEXT {
-		if len(i.Language) == 0 {
-			language := GetLanguage(i)
-			if len(language) > 0 {
-				i.Language = language
-			} else {
-				i.Language = "und"
-			}
-		}
-
 		if i.InputType != FILE {
 			reason := fmt.Sprintf("text streams are not supported in input_type %s", i.InputType)
 			i.disallowField("InputType", reason)
@@ -233,7 +261,10 @@ func (i *Input) Init() {
 		reason := `not supported with media_type "text"`
 		i.disallowField("StartTime", reason)
 		i.disallowField("EndTime", reason)
-		i.disallowField("Filters", reason)
+
+		if len(i.Filters) > 0 {
+			i.disallowField("Filters", reason)
+		}
 	}
 
 	if i.InputType != FILE {
@@ -267,7 +298,7 @@ func (i *Input) GetStreamSpecifier() string {
 	} else if i.MediaType == TEXT {
 		return fmt.Sprintf("s:%d", i.TrackNum)
 	} else {
-		panic("Unrecognized media type!")
+		panic("Unrecognized media_type! This should not happen.")
 	}
 }
 
@@ -323,27 +354,17 @@ func (i *Input) GetInputArgs() []string {
 	return args
 }
 
-func (i *Input) hasField(fieldName string) bool {
-	structValue := reflect.ValueOf(i).Elem()
-	_, ok := structValue.Type().FieldByName(fieldName)
-	return ok
-}
-
 // An error raised when a required field is missing from the input.
 func (i *Input) requireField(fieldName string) {
-	ok := i.hasField(fieldName)
-
-	if !ok {
-		panic(fmt.Sprintf("%s is a required field.", fieldName))
+	if !StructFieldHasValue(*i, fieldName) {
+		panic(NewMissingRequiredField(*i, fieldName))
 	}
 }
 
 // An error raised when a field is malformed.
 func (i *Input) disallowField(fieldName string, reason string) {
-	ok := i.hasField(fieldName)
-
-	if ok {
-		panic(fmt.Sprintf("%s is %s", fieldName, reason))
+	if StructFieldHasValue(*i, fieldName) {
+		panic(NewMalformedField(*i, fieldName, reason))
 	}
 }
 
@@ -357,16 +378,49 @@ func (i *Input) GetChannelLayout() *AudioChannelLayout {
 
 // An object representing a single period in a multiperiod inputs list.
 type SinglePeriod struct {
-	Inputs []Input `json:"inputs"`
+	Inputs []Input `yaml:"inputs"`
 }
 
 // An object representing the entire input config to Shaka Streamer.
 type InputConfig struct {
 	// A list of SinglePeriod objects
-	MultiPeriodInputsList []SinglePeriod `json:"multiperiod_inputs_list"`
+	MultiPeriodInputsList []SinglePeriod `yaml:"multiperiod_inputs_list"`
 
 	// A list of Input objects
-	Inputs []Input `json:"inputs"`
+	Inputs []Input `yaml:"inputs"`
+}
+
+func NewInputConfig(inputs []Input, mpi []SinglePeriod) *InputConfig {
+	i := &InputConfig{
+		Inputs:                inputs,
+		MultiPeriodInputsList: mpi,
+	}
+
+	// Manually set defaults.
+	if err := defaults.Set(i); err != nil {
+		panic(err)
+	}
+
+	return i
+}
+
+func (i *InputConfig) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	if err := defaults.Set(i); err != nil {
+		panic(err)
+	}
+
+	type plain InputConfig
+
+	if err := unmarshal((*plain)(i)); err != nil {
+		return err
+	}
+
+	// validations
+	if err := validate.Validate(i); err != nil {
+		panic(err)
+	}
+
+	return nil
 }
 
 /*
@@ -377,19 +431,17 @@ A constructor to check that either inputs or mutliperiod_inputs_list is provided
 	We need these checks before passing the input dictionary to the configuration.Base constructor,
 	because it does not check for this 'exclusive or-ing' relationship between fields
 */
-func NewInputConfig(dictionary map[string]interface{}) *InputConfig {
-	_, hasInputs := dictionary["Inputs"]
-	_, hasMultiPeriodInputsList := dictionary["MultiPeriodInputsList"]
+func (i *InputConfig) SetDefaults() {
+	hasInputs := len(i.Inputs) > 0
+	hasMultiPeriodInputsList := len(i.MultiPeriodInputsList) > 0
 
-	//  Because these fields are not marked as required at the class level
-	//  , we need to check ourselves that one of them is provided.
+	//  Because these fields are not marked as required at the class level,
+	// we need to check ourselves that one of them is provided.
 	if hasInputs && hasMultiPeriodInputsList {
-		panic(fmt.Sprintf("In InputConfig, these fields are conflicting: %s and %s Consider using only one of them.", "Inputs", "MultiperiodInputsList"))
+		panic(NewConflictingFields(*i, "Inputs", "MultiPeriodInputsList"))
 	}
 
 	if !hasInputs && !hasMultiPeriodInputsList {
-		panic(fmt.Sprintf("InputConfig is missing a required field. Use exactly one of these fields: a %s or a %s", "Inputs", "MultiperiodInputsList"))
+		panic(NewMissingRequiredExclusiveFields(*i, "Inputs", "MultiPeriodInputsList"))
 	}
-
-	return nil
 }
