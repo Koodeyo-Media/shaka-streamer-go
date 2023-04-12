@@ -109,3 +109,9 @@ func (h HexString) Validate() error {
 
 	return nil
 }
+
+func mergeMaps(dst map[string]interface{}, src map[string]interface{}) {
+	for k, v := range src {
+		dst[k] = v
+	}
+}

@@ -9,3 +9,4 @@ dev/
 ffmpeg*
 ffprobe*
 packager*
+vendor/

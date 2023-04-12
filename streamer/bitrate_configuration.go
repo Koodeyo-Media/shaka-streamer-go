@@ -181,6 +181,8 @@ var DefaultAudioChannelLayouts = &map[AudioChannelLayoutName]*AudioChannelLayout
 }
 
 type VideoResolution struct {
+	/** key. */
+	Name VideoResolutionName
 	// The maximum width in pixels for this named resolution.
 	MaxWidth int `yaml:"max_width"`
 
@@ -227,6 +229,7 @@ func (vr *VideoResolution) SetDefaults() {
 func NewVideoResolution(maxWidth int, maxHeight int, maxFrameRate float64, bitrates map[VideoCodecName]BitrateString) *VideoResolution {
 
 	return &VideoResolution{
+		Name:         "",
 		MaxWidth:     maxWidth,
 		MaxHeight:    maxHeight,
 		MaxFrameRate: maxFrameRate,

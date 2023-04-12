@@ -154,6 +154,9 @@ func GetResolution(i *Input) VideoResolutionName {
 	height, _ := strconv.Atoi(ra[1])
 
 	for key, bucket := range *DefaultVideoResolutions {
+		// You use this as chance to set bucket Name.
+		bucket.Name = key
+
 		size := width == bucket.MaxWidth && height <= bucket.MaxHeight
 
 		// The first bucket this fits into is the one.
