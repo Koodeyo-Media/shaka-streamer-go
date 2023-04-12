@@ -8,7 +8,7 @@ build:
 	go build -o $(BINARY_PATH) shaka-streamer.go
 
 test: 
-	go test -v ./...
+	go test -v -cover ./...
 
 setup: 
 	go run shaka-streamer.go --setup

@@ -18,7 +18,7 @@ type OutputStream struct {
 	Input           *Input
 	Features        map[string]string
 	Codec           Codec
-	ipcPipe         Pipe
+	ipcPipe         *Pipe
 }
 
 func NewOutputStream(t MediaType, in *Input, c Codec, pipeDir string, skipTranscoding bool, pipeSuffix string) *OutputStream {
@@ -30,12 +30,14 @@ func NewOutputStream(t MediaType, in *Input, c Codec, pipeDir string, skipTransc
 		Codec:           c,
 	}
 
+	pipe := NewPipe()
+
 	if o.SkipTranscoding {
 		// If skip_transcoding is specified, let the Packager read from a plain
 		// file instead of an IPC pipe.
-		o.ipcPipe = *NewPipe().CreateFilePipe(in.Name, "r")
+		o.ipcPipe = pipe.CreateFilePipe(in.Name, "r")
 	} else {
-		o.ipcPipe = *NewPipe().CreateIpcPipe(pipeDir, pipeSuffix)
+		o.ipcPipe = pipe.CreateIpcPipe(pipeDir, pipeSuffix)
 	}
 
 	return o
@@ -57,7 +59,7 @@ func (o *OutputStream) IsDashOnly() bool {
 	return o.Codec != nil && o.Codec.GetOutputFormat() == "webm"
 }
 
-func (o *OutputStream) GetInitSegFile() Pipe {
+func (o *OutputStream) GetInitSegFile() *Pipe {
 	initSegment := map[MediaType]string{
 		AUDIO: "audio_{language}_{channels}c_{bitrate}_{codec}_init.{format}",
 		VIDEO: "video_{resolution_name}_{bitrate}_{codec}_init.{format}",
@@ -70,10 +72,10 @@ func (o *OutputStream) GetInitSegFile() Pipe {
 		pathTempl = strings.ReplaceAll(pathTempl, "{"+key+"}", value)
 	}
 
-	return *NewPipe().CreateFilePipe(pathTempl, "w")
+	return NewPipe().CreateFilePipe(pathTempl, "w")
 }
 
-func (o *OutputStream) GetMediaSegFile() Pipe {
+func (o *OutputStream) GetMediaSegFile() *Pipe {
 	mediaSegment := map[MediaType]string{
 		AUDIO: "audio_{language}_{channels}c_{bitrate}_{codec}_$Number$.{format}",
 		VIDEO: "video_{resolution_name}_{bitrate}_{codec}_$Number$.{format}",
@@ -86,10 +88,10 @@ func (o *OutputStream) GetMediaSegFile() Pipe {
 		pathTempl = strings.ReplaceAll(pathTempl, "{"+key+"}", value)
 	}
 
-	return *NewPipe().CreateFilePipe(pathTempl, "w")
+	return NewPipe().CreateFilePipe(pathTempl, "w")
 }
 
-func (o *OutputStream) GetSingleSegFile() Pipe {
+func (o *OutputStream) GetSingleSegFile() *Pipe {
 	singleSegment := map[MediaType]string{
 		AUDIO: "audio_{language}_{channels}c_{bitrate}_{codec}.{format}",
 		VIDEO: "video_{resolution_name}_{bitrate}_{codec}.{format}",
@@ -102,7 +104,7 @@ func (o *OutputStream) GetSingleSegFile() Pipe {
 		pathTempl = strings.ReplaceAll(pathTempl, "{"+key+"}", value)
 	}
 
-	return *NewPipe().CreateFilePipe(pathTempl, "w")
+	return NewPipe().CreateFilePipe(pathTempl, "w")
 }
 
 type AudioOutputStream struct {
@@ -137,11 +139,11 @@ func (a *AudioOutputStream) GetBitrate() string {
 
 type VideoOutputStream struct {
 	*OutputStream
-	Resolution VideoResolution
+	Resolution *VideoResolution
 	Codec      *VideoCodec
 }
 
-func NewVideoOutputStream(i *Input, pipeDir string, c *VideoCodec, r VideoResolution) *VideoOutputStream {
+func NewVideoOutputStream(i *Input, pipeDir string, c *VideoCodec, r *VideoResolution) *VideoOutputStream {
 	// The features that will be used to generate the output filename.
 	features := make(map[string]string)
 	features["resolution_name"] = string(r.Name)

@@ -39,24 +39,22 @@ A static method used to create a pipe between two processes.
 */
 func (p *Pipe) CreateIpcPipe(tempDir string, suffix string) *Pipe {
 	uniqueName := uuid.New().String() + suffix
-	pipe := NewPipe()
-
 	if runtime.GOOS == "windows" {
 		// // Create pipe name.
 		// pipeName := "-nt-shaka-" + uniqueName
 
 		// // The read pipe is connected to a writer process.
-		// pipe.readPipeName = `\\.\pipe\W` + pipeName
+		// p.readPipeName = `\\.\pipe\W` + pipeName
 
 		// // The write pipe is connected to a reader process.
-		// pipe.writePipeName = `\\.\pipe\R` + pipeName
+		// p.writePipeName = `\\.\pipe\R` + pipeName
 
 		// // Set buffer size.
 		// bufSize := uint32(64 * 1024)
 
 		// // Create read side of named pipe.
 		// readSide, err := windows.CreateNamedPipe(
-		// 	pipe.readPipeName,
+		// 	p.readPipeName,
 		// 	windows.PIPE_ACCESS_INBOUND,
 		// 	windows.PIPE_TYPE_BYTE|windows.PIPE_READMODE_BYTE|windows.PIPE_WAIT,
 		// 	1,
@@ -69,11 +67,11 @@ func (p *Pipe) CreateIpcPipe(tempDir string, suffix string) *Pipe {
 		// 	panic(fmt.Errorf("failed to create named pipe: %v", err))
 		// }
 
-		// pipe.readHandle = windows.Handle(readSide)
+		// p.readHandle = windows.Handle(readSide)
 
 		// // Create write side of named pipe.
 		// writeSide, err := windows.CreateNamedPipe(
-		// 	pipe.writePipeName,
+		// 	p.writePipeName,
 		// 	windows.PIPE_ACCESS_OUTBOUND,
 		// 	windows.PIPE_TYPE_BYTE|windows.PIPE_READMODE_BYTE|windows.PIPE_WAIT,
 		// 	1,
@@ -86,11 +84,11 @@ func (p *Pipe) CreateIpcPipe(tempDir string, suffix string) *Pipe {
 		// 	panic(fmt.Errorf("failed to create named pipe: %v", err))
 		// }
 
-		// pipe.writeHandle = windows.Handle(writeSide)
+		// p.writeHandle = windows.Handle(writeSide)
 
 		// // Start the thread.
-		// go pipe.winThreadFn(bufSize)
-	} else if syscall.Mkfifo != nil {
+		// go p.winThreadFn(bufSize)
+	} else {
 		pipeName := filepath.Join(tempDir, uniqueName)
 		p.readPipeName = pipeName
 		p.writePipeName = pipeName
@@ -98,28 +96,25 @@ func (p *Pipe) CreateIpcPipe(tempDir string, suffix string) *Pipe {
 		if err := syscall.Mkfifo(pipeName, uint32(readableByOwnerOnly)); err != nil {
 			panic(fmt.Errorf("failed to create pipe: %v", err))
 		}
-	} else {
-		panic(fmt.Errorf("platform not supported"))
 	}
 
-	return pipe
+	return p
 }
 
 // Returns a Pipe object whose read or write end is a path to a file.
 func (p *Pipe) CreateFilePipe(path string, mode string) *Pipe {
-	pipe := NewPipe()
 
 	// A process will write on the read pipe(file)
 	if mode == "w" {
-		pipe.readPipeName = path
+		p.readPipeName = path
 		// A process will read from the write pipe(file).
 	} else if mode == "r" {
-		pipe.writePipeName = path
+		p.writePipeName = path
 	} else {
 		panic(fmt.Errorf("'%s' is not a valid mode for a Pipe", mode))
 	}
 
-	return pipe
+	return p
 }
 
 // func (p *Pipe) winThreadFn(bufSize uint32) {

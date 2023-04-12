@@ -1,10 +1,7 @@
 package streamer
 
 import (
-	"path/filepath"
 	"testing"
-
-	"github.com/Koodeyo-Media/shaka-streamer-go/tests"
 )
 
 func Test_probe(t *testing.T) {
@@ -13,9 +10,7 @@ func Test_probe(t *testing.T) {
 		field string
 	}
 
-	name := filepath.Join(".", "..", tests.TestDir, tests.TestFiles[0])
-
-	input := NewInput(FILE, name, VIDEO, []string{})
+	input := getTestInput(0, VIDEO)
 
 	tests := []struct {
 		name string

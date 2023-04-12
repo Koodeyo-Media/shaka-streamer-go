@@ -1,27 +1,20 @@
 package streamer
 
 import (
-	"path/filepath"
 	"reflect"
 	"testing"
-
-	"github.com/Koodeyo-Media/shaka-streamer-go/tests"
 )
 
 func TestNewInput(t *testing.T) {
 	type args struct {
-		inputType InputType
-		name      string
+		index     int
 		mediaType MediaType
-		filters   []string
 	}
 
 	getArgs := func(idx int, mediaType MediaType) args {
 		return args{
-			inputType: FILE,
-			name:      filepath.Join(".", "..", tests.TestDir, tests.TestFiles[idx]),
+			index:     idx,
 			mediaType: mediaType,
-			filters:   []string{},
 		}
 	}
 
@@ -45,7 +38,7 @@ func TestNewInput(t *testing.T) {
 
 	for _, tt := range resolutionTests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewInput(tt.args.inputType, tt.args.name, tt.args.mediaType, tt.args.filters); !reflect.DeepEqual(got.Resolution, tt.want) {
+			if got := getTestInput(tt.args.index, tt.args.mediaType); !reflect.DeepEqual(got.Resolution, tt.want) {
 				t.Errorf("Resolution = %v, want %v", got.Resolution, tt.want)
 			}
 		})
@@ -71,7 +64,7 @@ func TestNewInput(t *testing.T) {
 
 	for _, tt := range frameRateTests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewInput(tt.args.inputType, tt.args.name, tt.args.mediaType, tt.args.filters); !reflect.DeepEqual(got.FrameRate, tt.want) {
+			if got := getTestInput(tt.args.index, tt.args.mediaType); !reflect.DeepEqual(got.FrameRate, tt.want) {
 				t.Errorf("FrameRate = %v, want %v", got.FrameRate, tt.want)
 			}
 		})
