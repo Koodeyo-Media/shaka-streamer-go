@@ -29,21 +29,18 @@ func getTestOutputStreams(inputs ...*Input) *TestOutputStreams {
 	s := &TestOutputStreams{}
 
 	for _, i := range inputs {
-		if i.MediaType == VIDEO {
+		switch i.MediaType {
+		case VIDEO:
 			vc := getTestVideoCodec()
 			vr := NewBitrateConfig().GetResolutionValue(i.Resolution)
 			vos := NewVideoOutputStream(i, os.TempDir(), vc, vr)
 			s.video = vos
-		}
-
-		if i.MediaType == AUDIO {
+		case AUDIO:
 			ac := getTestAudioCodec()
 			al := NewBitrateConfig().GetChannelLayoutValue(i.ChannelLayout)
 			aos := NewAudioOutputStream(i, os.TempDir(), ac, al)
 			s.audio = aos
-		}
-
-		if i.MediaType == TEXT {
+		case TEXT:
 			s.text = NewTextOutputStream(i, os.TempDir(), true)
 		}
 	}
