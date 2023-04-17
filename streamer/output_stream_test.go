@@ -15,7 +15,6 @@ func TestOutputStream_GetMediaSegFile(t *testing.T) {
 	vi := getTestInput(0, VIDEO)
 	ai := getTestInput(1, AUDIO)
 	ti := getTestInput(2, TEXT)
-
 	streams := getTestOutputStreams(vi, ai, ti)
 
 	tests := []struct {

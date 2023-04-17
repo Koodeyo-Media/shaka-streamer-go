@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"reflect"
 	"sort"
 )
@@ -110,8 +112,32 @@ func (h HexString) Validate() error {
 	return nil
 }
 
-func mergeMaps(dst map[string]interface{}, src map[string]interface{}) {
+func MergeMaps(dst map[string]interface{}, src map[string]interface{}) {
 	for k, v := range src {
 		dst[k] = v
 	}
+}
+
+func RootDir() (string, error) {
+	rootDir, err := os.Getwd() // get the current working directory
+	if err != nil {
+		return "", err
+	}
+
+	for {
+		// check if a "go.mod" file exists in the current directory
+		if _, err := os.Stat(filepath.Join(rootDir, "go.mod")); err == nil {
+			break
+		}
+
+		// move up one directory
+		rootDir = filepath.Dir(rootDir)
+
+		// check if we've reached the root directory
+		if rootDir == filepath.Dir(rootDir) {
+			return "", fmt.Errorf("could not find root directory")
+		}
+	}
+
+	return rootDir, nil
 }

@@ -6,7 +6,9 @@ import (
 	"strings"
 )
 
+// A module that pushes input to ffmpeg to transcode into various formats.
 type TranscoderNode struct {
+	NodeBase
 	inputs         []*Input
 	pipelineConfig *PipelineConfig
 	outputs        []interface{}
@@ -15,19 +17,19 @@ type TranscoderNode struct {
 }
 
 func NewTranscoderNode(inputs []*Input, pipelineConfig *PipelineConfig, outputs []interface{}, index int, hermeticFFmpeg string) *TranscoderNode {
-	node := &TranscoderNode{
+	n := &TranscoderNode{
 		inputs:         inputs,
 		pipelineConfig: pipelineConfig,
 		outputs:        outputs,
 		index:          index,
-		ffmpeg:         hermeticFFmpeg,
+		ffmpeg:         "ffmpeg",
 	}
 
-	if hermeticFFmpeg == "" {
-		node.ffmpeg = "ffmpeg"
+	if hermeticFFmpeg != "" {
+		n.ffmpeg = hermeticFFmpeg
 	}
 
-	return node
+	return n
 }
 
 func (t *TranscoderNode) Start() {
@@ -166,7 +168,8 @@ func (t *TranscoderNode) Start() {
 		env["FFREPORT"] = fmt.Sprintf("file=%s:level=32", ffmpegLogFile)
 	}
 
-	// create_process
+	// start process
+	t.Process = t.CreateProcess(BaseParams{args: args, env: env})
 }
 
 func (t *TranscoderNode) encodeAudio(stream *AudioOutputStream, i *Input) []string {

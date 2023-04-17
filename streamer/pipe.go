@@ -21,8 +21,8 @@ type Pipe struct {
 }
 
 // Initializes a non-functioning pipe.
-func NewPipe() *Pipe {
-	return &Pipe{
+func NewPipe() Pipe {
+	return Pipe{
 		readPipeName:  "",
 		writePipeName: "",
 		// recvBuffer:    make(chan []byte),
@@ -37,7 +37,7 @@ A static method used to create a pipe between two processes.
 	On Windows platforms, it starts a backgroud thread that transfars data from the
 	writer to the reader process it is connected to.
 */
-func (p *Pipe) CreateIpcPipe(tempDir string, suffix string) *Pipe {
+func (p *Pipe) CreateIpcPipe(tempDir string, suffix string) {
 	uniqueName := uuid.New().String() + suffix
 	if runtime.GOOS == "windows" {
 		// // Create pipe name.
@@ -97,13 +97,10 @@ func (p *Pipe) CreateIpcPipe(tempDir string, suffix string) *Pipe {
 			panic(fmt.Errorf("failed to create pipe: %v", err))
 		}
 	}
-
-	return p
 }
 
 // Returns a Pipe object whose read or write end is a path to a file.
-func (p *Pipe) CreateFilePipe(path string, mode string) *Pipe {
-
+func (p *Pipe) CreateFilePipe(path string, mode string) {
 	// A process will write on the read pipe(file)
 	if mode == "w" {
 		p.readPipeName = path
@@ -113,8 +110,6 @@ func (p *Pipe) CreateFilePipe(path string, mode string) *Pipe {
 	} else {
 		panic(fmt.Errorf("'%s' is not a valid mode for a Pipe", mode))
 	}
-
-	return p
 }
 
 // func (p *Pipe) winThreadFn(bufSize uint32) {
