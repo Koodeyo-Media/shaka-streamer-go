@@ -36,7 +36,7 @@ func NewUnrecognizedField(classRef interface{}, fieldName string) *UnrecognizedF
 	}
 }
 
-func (e *UnrecognizedField) Error() string {
+func (e UnrecognizedField) Error() string {
 	return fmt.Sprintf("%s contains unrecognized field: %s", e.ClassName, e.FieldName)
 }
 
@@ -51,7 +51,7 @@ func NewWrongType(classRef interface{}, fieldName string) *WrongType {
 	}
 }
 
-func (e *WrongType) Error() string {
+func (e WrongType) Error() string {
 	return fmt.Sprintf("In %s, %s field requires a %v", e.ClassName, e.FieldName, e.FieldType)
 }
 
@@ -66,7 +66,7 @@ func NewMissingRequiredField(classRef interface{}, fieldName string) *MissingReq
 	}
 }
 
-func (e *MissingRequiredField) Error() string {
+func (e MissingRequiredField) Error() string {
 	return fmt.Sprintf("%s is missing a required field: %s, a %v", e.ClassName, e.FieldName, e.FieldType)
 }
 
@@ -83,7 +83,7 @@ func NewMalformedField(classRef interface{}, fieldName, reason string) *Malforme
 	}
 }
 
-func (e *MalformedField) Error() string {
+func (e MalformedField) Error() string {
 	return fmt.Sprintf("In %s, %s field is malformed: %s", e.ClassName, e.FieldName, e.Reason)
 }
 
@@ -95,16 +95,16 @@ type InputNotFound struct {
 	Name      string
 }
 
-func NewInputNotFound(i *Input) *InputNotFound {
+func NewInputNotFound(i Input) *InputNotFound {
 	return &InputNotFound{
-		ClassName: reflect.TypeOf(*i).Name(),
+		ClassName: reflect.TypeOf(i).Name(),
 		TrackNum:  i.TrackNum,
 		MediaType: i.MediaType,
 		Name:      i.Name,
 	}
 }
 
-func (e *InputNotFound) Error() string {
+func (e InputNotFound) Error() string {
 	return fmt.Sprintf(`In %s, %s track %v was not found in "%s"`, e.ClassName, e.MediaType, e.TrackNum, e.Name)
 }
 
@@ -127,7 +127,7 @@ func NewConflictingFields(classRef interface{}, field1Name string, field2Name st
 	}
 }
 
-func (e *ConflictingFields) Error() string {
+func (e ConflictingFields) Error() string {
 	return fmt.Sprintf("In %s, these fields are conflicting: %s a %s and %s a %s\n  consider using only one of them.", e.ClassName, e.Field1Name, e.Field1Type, e.Field2Name, e.Field2Type)
 }
 
@@ -141,6 +141,6 @@ func NewMissingRequiredExclusiveFields(classRef interface{}, fieldName1, fieldNa
 	}
 }
 
-func (e *MissingRequiredExclusiveFields) Error() string {
+func (e MissingRequiredExclusiveFields) Error() string {
 	return fmt.Sprintf("%s is missing a required field. Use exactly one of these fields: %s a %s or %s a %s", e.ClassName, e.Field1Name, e.Field1Type, e.Field2Name, e.Field2Type)
 }

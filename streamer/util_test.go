@@ -6,9 +6,9 @@ import (
 	"github.com/Koodeyo-Media/shaka-streamer-go/tests"
 )
 
-func getTestInput(idx int, mediaType MediaType) *Input {
+func getTestInput(idx int, mediaType MediaType) Input {
 	rootDir, _ := RootDir()
-	return NewInput(FILE, filepath.Join(rootDir, tests.TestDir, tests.TestFiles[idx]), mediaType, []string{})
+	return *NewInput(FILE, filepath.Join(rootDir, tests.TestDir, tests.TestFiles[idx]), mediaType, []string{})
 }
 
 func getTestVideoCodec() *VideoCodec {
@@ -25,7 +25,7 @@ type TestOutputStreams struct {
 	text  *TextOutputStream
 }
 
-func getTestOutputStreams(inputs ...*Input) *TestOutputStreams {
+func getTestOutputStreams(inputs ...Input) TestOutputStreams {
 	s := &TestOutputStreams{}
 	rootDir, _ := RootDir()
 	pipeDir := filepath.Join(rootDir, "tmp")
@@ -34,12 +34,12 @@ func getTestOutputStreams(inputs ...*Input) *TestOutputStreams {
 		switch i.MediaType {
 		case VIDEO:
 			vc := getTestVideoCodec()
-			vr := NewBitrateConfig().GetResolutionValue(i.Resolution)
+			vr := *NewBitrateConfig().GetResolutionValue(i.Resolution)
 			vos := NewVideoOutputStream(i, pipeDir, vc, vr)
 			s.video = vos
 		case AUDIO:
 			ac := getTestAudioCodec()
-			al := NewBitrateConfig().GetChannelLayoutValue(i.ChannelLayout)
+			al := *NewBitrateConfig().GetChannelLayoutValue(i.ChannelLayout)
 			aos := NewAudioOutputStream(i, pipeDir, ac, al)
 			s.audio = aos
 		case TEXT:
@@ -47,5 +47,5 @@ func getTestOutputStreams(inputs ...*Input) *TestOutputStreams {
 		}
 	}
 
-	return s
+	return *s
 }

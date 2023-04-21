@@ -207,8 +207,8 @@ func (i *Input) SetDefaults() {
 	}
 
 	// Check if track is available
-	if !IsPresent(i) {
-		panic(NewInputNotFound(i))
+	if !IsPresent(*i) {
+		panic(NewInputNotFound(*i))
 	}
 
 	if i.MediaType == VIDEO {
@@ -216,17 +216,17 @@ func (i *Input) SetDefaults() {
 		// We will attempt to auto-detect them if possible.
 
 		if defaults.CanUpdate(i.IsInterlaced) {
-			i.IsInterlaced = GetInterlaced(i)
+			i.IsInterlaced = GetInterlaced(*i)
 		}
 
 		if defaults.CanUpdate(i.FrameRate) {
-			i.FrameRate = GetFrameRate(i)
+			i.FrameRate = GetFrameRate(*i)
 			// FrameRate is required
 			i.requireField("FrameRate")
 		}
 
 		if defaults.CanUpdate(i.Resolution) {
-			i.Resolution = GetResolution(i)
+			i.Resolution = GetResolution(*i)
 			// Resolution is required
 			i.requireField("Resolution")
 		}
@@ -234,7 +234,7 @@ func (i *Input) SetDefaults() {
 
 	if i.MediaType == AUDIO || i.MediaType == TEXT {
 		if defaults.CanUpdate(i.Language) {
-			language := GetLanguage(i)
+			language := GetLanguage(*i)
 			if len(language) > 0 {
 				i.Language = language
 			} else {
@@ -245,7 +245,7 @@ func (i *Input) SetDefaults() {
 
 	if i.MediaType == AUDIO {
 		if defaults.CanUpdate(i.ChannelLayout) {
-			i.ChannelLayout = GetChannelLayout(i)
+			i.ChannelLayout = GetChannelLayout(*i)
 			// ChannelLayout is required
 			i.requireField("ChannelLayout")
 		}
@@ -290,7 +290,7 @@ Get an FFmpeg stream specifier for this input.
 
 	See also http://ffmpeg.org/ffmpeg.html#Stream-specifiers
 */
-func (i *Input) GetStreamSpecifier() string {
+func (i Input) GetStreamSpecifier() string {
 	if i.MediaType == VIDEO {
 		return fmt.Sprintf("v:%d", i.TrackNum)
 	} else if i.MediaType == AUDIO {
@@ -312,7 +312,7 @@ these common cases.
 Note that for types which support autodetect, these arguments must be
 understood by ffprobe as well as ffmpeg.
 */
-func (i *Input) GetInputArgs() []string {
+func (i Input) GetInputArgs() []string {
 	argsMatrix := map[InputType]map[string][]string{
 		WEBCAM: {
 			"Linux": []string{
@@ -355,24 +355,24 @@ func (i *Input) GetInputArgs() []string {
 }
 
 // An error raised when a required field is missing from the input.
-func (i *Input) requireField(fieldName string) {
-	if !StructFieldHasValue(*i, fieldName) {
-		panic(NewMissingRequiredField(*i, fieldName))
+func (i Input) requireField(fieldName string) {
+	if !StructFieldHasValue(i, fieldName) {
+		panic(NewMissingRequiredField(i, fieldName))
 	}
 }
 
 // An error raised when a field is malformed.
-func (i *Input) disallowField(fieldName string, reason string) {
-	if StructFieldHasValue(*i, fieldName) {
-		panic(NewMalformedField(*i, fieldName, reason))
+func (i Input) disallowField(fieldName string, reason string) {
+	if StructFieldHasValue(i, fieldName) {
+		panic(NewMalformedField(i, fieldName, reason))
 	}
 }
 
-func (i *Input) GetResolution() *VideoResolution {
+func (i Input) GetResolution() *VideoResolution {
 	return NewBitrateConfig().GetResolutionValue(i.Resolution)
 }
 
-func (i *Input) GetChannelLayout() *AudioChannelLayout {
+func (i Input) GetChannelLayout() *AudioChannelLayout {
 	return NewBitrateConfig().GetChannelLayoutValue(i.ChannelLayout)
 }
 

@@ -9,14 +9,14 @@ import (
 // A module that pushes input to ffmpeg to transcode into various formats.
 type TranscoderNode struct {
 	NodeBase
-	inputs         []*Input
-	pipelineConfig *PipelineConfig
-	outputs        []interface{}
+	inputs         []Input
+	pipelineConfig PipelineConfig
+	outputs        []MediaOutputStream
 	index          int
 	ffmpeg         string
 }
 
-func NewTranscoderNode(inputs []*Input, pipelineConfig *PipelineConfig, outputs []interface{}, index int, hermeticFFmpeg string) *TranscoderNode {
+func NewTranscoderNode(inputs []Input, pipelineConfig PipelineConfig, outputs []MediaOutputStream, index int, hermeticFFmpeg string) *TranscoderNode {
 	n := &TranscoderNode{
 		inputs:         inputs,
 		pipelineConfig: pipelineConfig,
@@ -51,9 +51,7 @@ func (t *TranscoderNode) Start() {
 	}
 
 	for _, output := range t.outputs {
-		outputStream, _ := output.(*OutputStream)
-
-		if outputStream.IsHardwareAccelerated() && t.pipelineConfig.HWAccelAPI == "vaapi" {
+		if output.IsHardwareAccelerated() && t.pipelineConfig.HWAccelAPI == "vaapi" {
 			args = append(args, []string{
 				// Hardware acceleration args.
 				// TODO(#17): Support multiple VAAPI devices.
@@ -128,14 +126,14 @@ func (t *TranscoderNode) Start() {
 		}
 
 		for _, stream := range t.outputs {
-			output, _ := stream.(*OutputStream)
+			streamInput := stream.GetInput()
 
-			if &output.Input != &input {
+			if streamInput.TrackNum != input.TrackNum && streamInput.Name != input.Name {
 				// Skip outputs that don't match this exact input object.
 				continue
 			}
 
-			if output.SkipTranscoding {
+			if stream.SkippedTranscoding() {
 				// This input won't be transcoded. This is common for VTT text input.
 				continue
 			}
@@ -155,7 +153,8 @@ func (t *TranscoderNode) Start() {
 				args = append(args, t.encodeText(textStream, input)...)
 			}
 
-			args = append(args, output.ipcPipe.WriteEnd())
+			ipcPipe := stream.GetIpcPipe()
+			args = append(args, ipcPipe.WriteEnd())
 		}
 	}
 
@@ -172,7 +171,7 @@ func (t *TranscoderNode) Start() {
 	t.Process = t.CreateProcess(BaseParams{args: args, env: env})
 }
 
-func (t *TranscoderNode) encodeAudio(stream *AudioOutputStream, i *Input) []string {
+func (t TranscoderNode) encodeAudio(stream *AudioOutputStream, i Input) []string {
 	var filters []string
 	args := []string{
 		// No video encoding for audio.
@@ -218,7 +217,7 @@ func (t *TranscoderNode) encodeAudio(stream *AudioOutputStream, i *Input) []stri
 	return args
 }
 
-func (t *TranscoderNode) encodeVideo(stream *VideoOutputStream, i *Input) []string {
+func (t TranscoderNode) encodeVideo(stream *VideoOutputStream, i Input) []string {
 	var filters []string
 	var args []string
 
@@ -349,7 +348,7 @@ func (t *TranscoderNode) encodeVideo(stream *VideoOutputStream, i *Input) []stri
 	return args
 }
 
-func (t *TranscoderNode) encodeText(stream *TextOutputStream, i *Input) []string {
+func (t TranscoderNode) encodeText(stream *TextOutputStream, i Input) []string {
 	return []string{
 		// Output WebVTT.
 		"-f", "webvtt",

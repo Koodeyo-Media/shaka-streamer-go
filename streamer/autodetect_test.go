@@ -6,7 +6,7 @@ import (
 
 func Test_probe(t *testing.T) {
 	type args struct {
-		i     *Input
+		i     Input
 		field string
 	}
 

@@ -32,15 +32,15 @@ func isUrl(s string) bool {
 // A module that feeds information from two named pipes into shaka-packager.
 type PackagerNode struct {
 	NodeBase
-	pipelineConfig *PipelineConfig
+	pipelineConfig PipelineConfig
 	outputLocation string
 	segmentDir     string
-	outputStreams  []interface{}
+	outputStreams  []MediaOutputStream
 	index          int
 	packager       string
 }
 
-func NewPackagerNode(pipelineConfig *PipelineConfig, outputLocation string, streams []interface{}, index int, hermeticPackager string) *PackagerNode {
+func NewPackagerNode(pipelineConfig PipelineConfig, outputLocation string, streams []MediaOutputStream, index int, hermeticPackager string) *PackagerNode {
 	pn := &PackagerNode{
 		pipelineConfig: pipelineConfig,
 		outputLocation: outputLocation,
@@ -68,7 +68,9 @@ func (pn *PackagerNode) Start() {
 		args = append(args, "--quiet") // Only output error logs
 	}
 
-	args = append(args, "--segment_duration", strconv.FormatFloat(pn.pipelineConfig.SegmentSize, 'f', 2, 64))
+	if pn.pipelineConfig.SegmentSize > 0 {
+		args = append(args, "--segment_duration", strconv.FormatFloat(pn.pipelineConfig.SegmentSize, 'f', 2, 64))
+	}
 
 	if pn.pipelineConfig.StreamingMode == LIVE {
 		args = append(args,
@@ -110,25 +112,28 @@ func (pn *PackagerNode) Start() {
 	pn.Process = pn.CreateProcess(BaseParams{args: args, stdout: stdout})
 }
 
-func (pn *PackagerNode) setupStream(outputStream interface{}) string {
-	stream, _ := outputStream.(OutputStream)
+func (pn PackagerNode) setupStream(stream MediaOutputStream) string {
+	input := stream.GetInput()
+	ipcPipe := stream.GetIpcPipe()
 
 	dict := map[string]string{
-		"in":     stream.ipcPipe.ReadEnd(),
-		"stream": string(stream.Type),
+		"in":     ipcPipe.ReadEnd(),
+		"stream": string(stream.GetType()),
 	}
 
-	dict["skip_encryption"] = strconv.Itoa(stream.Input.SkipEncryption)
+	if input.SkipEncryption > 0 {
+		dict["skip_encryption"] = strconv.Itoa(input.SkipEncryption)
+	}
 
-	if stream.Input.DrmLabel != "" {
-		dict["drm_label"] = stream.Input.DrmLabel
+	if input.DrmLabel != "" {
+		dict["drm_label"] = input.DrmLabel
 	}
 
 	// Note: Shaka Packager will not accept 'und' as a language, but Shaka
 	// Player will fill that in if the language metadata is missing from the
 	// manifest/playlist.
-	if stream.Input.Language != "" && stream.Input.Language != "und" {
-		dict["language"] = stream.Input.Language
+	if input.Language != "" && input.Language != "und" {
+		dict["language"] = input.Language
 	}
 
 	if pn.pipelineConfig.SegmentPerFile {
@@ -156,7 +161,7 @@ func (pn *PackagerNode) setupStream(outputStream interface{}) string {
 	return strings.Join(args, ",")
 }
 
-func (pn *PackagerNode) setupManifestFormat() []string {
+func (pn PackagerNode) setupManifestFormat() []string {
 	args := []string{}
 
 	if containsManifestFormat(pn.pipelineConfig.ManifestFormat, DASH) {
@@ -195,7 +200,7 @@ func (pn *PackagerNode) setupManifestFormat() []string {
 }
 
 // Sets up encryption keys for raw encryption mode
-func (pn *PackagerNode) setupEncryptionKeys() []string {
+func (pn PackagerNode) setupEncryptionKeys() []string {
 	keys := []string{}
 
 	for _, key := range pn.pipelineConfig.Encryption.Keys {
@@ -213,7 +218,7 @@ func (pn *PackagerNode) setupEncryptionKeys() []string {
 }
 
 // Sets up encryption of content.
-func (pn *PackagerNode) setupEncryption() []string {
+func (pn PackagerNode) setupEncryption() []string {
 	encryption := pn.pipelineConfig.Encryption
 	args := []string{}
 

@@ -7,8 +7,8 @@ import (
 )
 
 type fields struct {
-	input        *Input
-	outputStream interface{}
+	input        Input
+	outputStream MediaOutputStream
 }
 
 func TestOutputStream_GetMediaSegFile(t *testing.T) {

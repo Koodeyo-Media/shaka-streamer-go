@@ -30,7 +30,7 @@ Returns:
 
 	The requested field from ffprobe as a string, or None if this fails.
 */
-func probe(i *Input, field string) (string, error) {
+func probe(i Input, field string) (string, error) {
 	if ContainsInputType(TYPES_WE_CANT_PROBE, i.InputType) {
 		// Not supported for this type.
 		return "", fmt.Errorf("%s not supported", i.InputType)
@@ -85,19 +85,19 @@ func probe(i *Input, field string) (string, error) {
 
 // IsPresent returns true if the stream for this input is indeed found.
 // If we can't probe this input type, assume it is present.
-func IsPresent(i *Input) bool {
+func IsPresent(i Input) bool {
 	s, err := probe(i, "stream=index")
 	return err == nil && len(s) > 0
 }
 
 // GetLanguage returns the autodetected the language of the input.
-func GetLanguage(i *Input) string {
+func GetLanguage(i Input) string {
 	l, _ := probe(i, "stream_tags=language")
 	return l
 }
 
 // GetInterlaced returns true if we detect that the input is interlaced.
-func GetInterlaced(i *Input) bool {
+func GetInterlaced(i Input) bool {
 	s, err := probe(i, "stream=field_order")
 	if err != nil {
 		return false
@@ -111,7 +111,7 @@ func GetInterlaced(i *Input) bool {
 	return ContainsString([]string{"tt", "bb", "tb", "bt"}, s)
 }
 
-func GetFrameRate(i *Input) float64 {
+func GetFrameRate(i Input) float64 {
 	s, _ := probe(i, "stream=avg_frame_rate")
 
 	// This string is the framerate in the form of a fraction, such as '24/1' or
@@ -140,7 +140,7 @@ func GetFrameRate(i *Input) float64 {
 }
 
 // Returns the autodetected resolution of the input.
-func GetResolution(i *Input) VideoResolutionName {
+func GetResolution(i Input) VideoResolutionName {
 	// resolutionString
 	rs, _ := probe(i, "stream=width,height")
 
@@ -174,7 +174,7 @@ func GetResolution(i *Input) VideoResolutionName {
 }
 
 // Returns the autodetected channel count of the input.
-func GetChannelLayout(i *Input) AudioChannelLayoutName {
+func GetChannelLayout(i Input) AudioChannelLayoutName {
 	// channelCountString
 	cs, _ := probe(i, "stream=channels")
 

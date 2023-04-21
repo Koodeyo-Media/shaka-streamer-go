@@ -12,3 +12,6 @@ test:
 
 setup: 
 	go run shaka-streamer.go --setup
+
+build-linux:
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o $(BINARY_PATH) shaka-streamer.go

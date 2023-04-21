@@ -11,3 +11,4 @@ ffprobe*
 packager*
 vendor/
 tmp/
+*.log

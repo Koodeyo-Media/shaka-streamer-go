@@ -63,7 +63,7 @@ Args:
 
 Returns: The Popen object of the subprocess.
 */
-func (nb *NodeBase) CreateProcess(params BaseParams) *exec.Cmd {
+func (nb NodeBase) CreateProcess(params BaseParams) *exec.Cmd {
 	cmd := exec.Command(params.args[0], params.args[1:]...)
 
 	if params.mergeEnv {
@@ -75,7 +75,7 @@ func (nb *NodeBase) CreateProcess(params BaseParams) *exec.Cmd {
 	// Print arguments formatted as output from bash -x would be.
 	// This makes it easy to see the arguments and easy to copy/paste them for
 	// debugging in a shell.
-	fmt.Printf("+ %s\n", strings.Join(params.args, " "))
+	fmt.Printf("%s\n", strings.Join(params.args, " "))
 
 	cmd.Stdin = nil
 	cmd.Stdout = params.stdout
@@ -98,7 +98,7 @@ func (nb *NodeBase) CreateProcess(params BaseParams) *exec.Cmd {
 }
 
 // Returns the current ProcessStatus of the node.
-func (nb *NodeBase) CheckStatus() ProcessStatus {
+func (nb NodeBase) CheckStatus() ProcessStatus {
 	if nb.Process == nil {
 		panic("Must have a process to check")
 	}
@@ -115,7 +115,7 @@ func (nb *NodeBase) CheckStatus() ProcessStatus {
 }
 
 // Stop the subprocess if it's still running.
-func (nb *NodeBase) Stop() {
+func (nb NodeBase) Stop() {
 	if nb.Process != nil {
 		// Slightly more polite than kill.  Try this first.
 		pgid, err := syscall.Getpgid(nb.Process.Process.Pid)

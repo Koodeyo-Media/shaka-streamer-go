@@ -11,17 +11,29 @@ type Codec interface {
 	GetOutputFormat() string
 }
 
+type MediaOutputStream interface {
+	GetInput() Input
+	GetType() MediaType
+	GetIpcPipe() Pipe
+	IsDashOnly() bool
+	GetInitSegFile() Pipe
+	GetMediaSegFile() Pipe
+	GetSingleSegFile() Pipe
+	IsHardwareAccelerated() bool
+	SkippedTranscoding() bool
+}
+
 // Base class for output streams.
 type OutputStream struct {
 	Type            MediaType
 	SkipTranscoding bool
-	Input           *Input
+	Input           Input
 	Features        map[string]string
 	Codec           Codec
 	ipcPipe         Pipe
 }
 
-func NewOutputStream(t MediaType, in *Input, c Codec, pipeDir string, skipTranscoding bool, pipeSuffix string) *OutputStream {
+func NewOutputStream(t MediaType, in Input, c Codec, pipeDir string, skipTranscoding bool, pipeSuffix string) *OutputStream {
 	o := &OutputStream{
 		Type:            t,
 		Input:           in,
@@ -42,11 +54,27 @@ func NewOutputStream(t MediaType, in *Input, c Codec, pipeDir string, skipTransc
 	return o
 }
 
-func (o *OutputStream) IsHardwareAccelerated() bool {
+func (o OutputStream) GetInput() Input {
+	return o.Input
+}
+
+func (o OutputStream) GetType() MediaType {
+	return o.Type
+}
+
+func (o OutputStream) GetIpcPipe() Pipe {
+	return o.ipcPipe
+}
+
+func (o OutputStream) IsHardwareAccelerated() bool {
 	return o.Codec != nil && o.Codec.IsHardwareAccelerated()
 }
 
-func (o *OutputStream) GetFFmpegCodecString(hwaccelAPI string) string {
+func (o OutputStream) SkippedTranscoding() bool {
+	return o.SkipTranscoding
+}
+
+func (o OutputStream) GetFFmpegCodecString(hwaccelAPI string) string {
 	if o.Codec != nil {
 		return o.Codec.GetFFmpegCodecString(hwaccelAPI)
 	}
@@ -54,11 +82,11 @@ func (o *OutputStream) GetFFmpegCodecString(hwaccelAPI string) string {
 	return ""
 }
 
-func (o *OutputStream) IsDashOnly() bool {
+func (o OutputStream) IsDashOnly() bool {
 	return o.Codec != nil && o.Codec.GetOutputFormat() == "webm"
 }
 
-func (o *OutputStream) GetInitSegFile() Pipe {
+func (o OutputStream) GetInitSegFile() Pipe {
 	initSegment := map[MediaType]string{
 		AUDIO: "audio_{language}_{channels}c_{bitrate}_{codec}_init.{format}",
 		VIDEO: "video_{resolution_name}_{bitrate}_{codec}_init.{format}",
@@ -77,7 +105,7 @@ func (o *OutputStream) GetInitSegFile() Pipe {
 	return pipe
 }
 
-func (o *OutputStream) GetMediaSegFile() Pipe {
+func (o OutputStream) GetMediaSegFile() Pipe {
 	mediaSegment := map[MediaType]string{
 		AUDIO: "audio_{language}_{channels}c_{bitrate}_{codec}_$Number$.{format}",
 		VIDEO: "video_{resolution_name}_{bitrate}_{codec}_$Number$.{format}",
@@ -96,7 +124,7 @@ func (o *OutputStream) GetMediaSegFile() Pipe {
 	return pipe
 }
 
-func (o *OutputStream) GetSingleSegFile() Pipe {
+func (o OutputStream) GetSingleSegFile() Pipe {
 	singleSegment := map[MediaType]string{
 		AUDIO: "audio_{language}_{channels}c_{bitrate}_{codec}.{format}",
 		VIDEO: "video_{resolution_name}_{bitrate}_{codec}.{format}",
@@ -117,11 +145,11 @@ func (o *OutputStream) GetSingleSegFile() Pipe {
 
 type AudioOutputStream struct {
 	*OutputStream
-	Layout *AudioChannelLayout
+	Layout AudioChannelLayout
 	Codec  *AudioCodec
 }
 
-func NewAudioOutputStream(i *Input, pipeDir string, c *AudioCodec, l *AudioChannelLayout) *AudioOutputStream {
+func NewAudioOutputStream(i Input, pipeDir string, c *AudioCodec, l AudioChannelLayout) *AudioOutputStream {
 	// The features that will be used to generate the output filename.
 	features := make(map[string]string)
 	features["language"] = i.Language
@@ -141,17 +169,17 @@ func NewAudioOutputStream(i *Input, pipeDir string, c *AudioCodec, l *AudioChann
 }
 
 // Returns the bitrate for this stream.
-func (a *AudioOutputStream) GetBitrate() string {
+func (a AudioOutputStream) GetBitrate() string {
 	return string(a.Layout.Bitrates[a.Codec.Name])
 }
 
 type VideoOutputStream struct {
 	*OutputStream
-	Resolution *VideoResolution
+	Resolution VideoResolution
 	Codec      *VideoCodec
 }
 
-func NewVideoOutputStream(i *Input, pipeDir string, c *VideoCodec, r *VideoResolution) *VideoOutputStream {
+func NewVideoOutputStream(i Input, pipeDir string, c *VideoCodec, r VideoResolution) *VideoOutputStream {
 	// The features that will be used to generate the output filename.
 	features := make(map[string]string)
 	features["resolution_name"] = string(r.Name)
@@ -170,7 +198,7 @@ func NewVideoOutputStream(i *Input, pipeDir string, c *VideoCodec, r *VideoResol
 }
 
 // Returns the bitrate for this stream.
-func (v *VideoOutputStream) GetBitrate() string {
+func (v VideoOutputStream) GetBitrate() string {
 	return string(v.Resolution.Bitrates[v.Codec.Name])
 }
 
@@ -178,7 +206,7 @@ type TextOutputStream struct {
 	*OutputStream
 }
 
-func NewTextOutputStream(i *Input, pipeDir string, skipTranscoding bool) *TextOutputStream {
+func NewTextOutputStream(i Input, pipeDir string, skipTranscoding bool) *TextOutputStream {
 	s := NewOutputStream(TEXT, i, nil, pipeDir, skipTranscoding, ".vtt")
 
 	s.Features = map[string]string{
