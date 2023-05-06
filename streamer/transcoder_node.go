@@ -1,3 +1,4 @@
+// A module that pushes input to ffmpeg to transcode into various formats.
 package streamer
 
 import (
@@ -6,7 +7,6 @@ import (
 	"strings"
 )
 
-// A module that pushes input to ffmpeg to transcode into various formats.
 type TranscoderNode struct {
 	NodeBase
 	inputs         []Input

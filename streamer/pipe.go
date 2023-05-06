@@ -38,6 +38,9 @@ A static method used to create a pipe between two processes.
 	writer to the reader process it is connected to.
 */
 func (p *Pipe) CreateIpcPipe(tempDir string, suffix string) {
+	// Ensure directory exists
+	os.MkdirAll(tempDir, os.ModePerm)
+
 	uniqueName := uuid.New().String() + suffix
 	if runtime.GOOS == "windows" {
 		// // Create pipe name.

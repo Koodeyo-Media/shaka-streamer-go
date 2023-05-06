@@ -35,7 +35,7 @@ type PackagerNode struct {
 	pipelineConfig PipelineConfig
 	outputLocation string
 	segmentDir     string
-	outputStreams  []MediaOutputStream
+	OutputStreams  []MediaOutputStream
 	index          int
 	packager       string
 }
@@ -44,7 +44,7 @@ func NewPackagerNode(pipelineConfig PipelineConfig, outputLocation string, strea
 	pn := &PackagerNode{
 		pipelineConfig: pipelineConfig,
 		outputLocation: outputLocation,
-		outputStreams:  streams,
+		OutputStreams:  streams,
 		index:          index,
 		packager:       "packager",
 		segmentDir:     buildPath(outputLocation, pipelineConfig.SegmentFolder),
@@ -60,7 +60,7 @@ func NewPackagerNode(pipelineConfig PipelineConfig, outputLocation string, strea
 func (pn *PackagerNode) Start() {
 	args := []string{pn.packager}
 
-	for _, stream := range pn.outputStreams {
+	for _, stream := range pn.OutputStreams {
 		args = append(args, pn.setupStream(stream))
 	}
 

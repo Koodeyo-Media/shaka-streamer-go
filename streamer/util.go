@@ -5,10 +5,17 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"sort"
+	"strconv"
+	"strings"
 )
+
+// Streamer Version
+var Version = "0.5.1"
 
 func ContainsInputType(arr []InputType, val InputType) bool {
 	for _, v := range arr {
@@ -140,4 +147,93 @@ func RootDir() (string, error) {
 	}
 
 	return rootDir, nil
+}
+
+// ParseInt parses a string into an integer or returns 0 if it fails
+func ParseInt(s string) int {
+	n, err := fmt.Sscanf(s, "%d")
+	if err != nil || n != 1 {
+		return 0
+	}
+
+	return n
+}
+
+func FileExists(filePath string) bool {
+	_, err := os.Stat(filePath)
+	return err == nil
+}
+
+// checkCommandVersion checks the version of a given command
+func CheckCommandVersion(name string, command []string, minimumVersion []int) error {
+	// minimumVersionString := fmt.Sprintf("%d.%d.%d", minimumVersion[0], minimumVersion[1], minimumVersion[2])
+	versionString := strings.Trim(fmt.Sprint(minimumVersion), "[]")
+	minimumVersionString := strings.ReplaceAll(versionString, " ", ".")
+	output, err := exec.Command(command[0], command[1:]...).Output()
+
+	if err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			fmt.Fprintln(os.Stderr, string(exitError.Stderr))
+		}
+
+		return &VersionError{Name: name, Problem: "not found", RequiredVersion: minimumVersionString}
+	}
+
+	// Matches two or more numbers (one or more digits each) separated by dots.
+	// For example: 4.1.3 or 7.2 or 216.999.8675309
+	versionRegex := regexp.MustCompile(`[0-9]+(?:\.[0-9]+)+`)
+	versionMatch := versionRegex.FindString(string(output))
+
+	if versionMatch != "" {
+		versionString := versionMatch
+		versionSlice := make([]int, 0)
+
+		for _, piece := range regexp.MustCompile(`\.`).Split(versionString, -1) {
+			num, _ := strconv.Atoi(piece)
+			versionSlice = append(versionSlice, num)
+		}
+
+		version := versionSlice
+
+		if version[0] < minimumVersion[0] || (version[0] == minimumVersion[0] && version[1] < minimumVersion[1]) || (version[0] == minimumVersion[0] && version[1] == minimumVersion[1] && version[2] < minimumVersion[2]) {
+			return &VersionError{Name: name, Problem: "out of date", RequiredVersion: minimumVersionString}
+		}
+	} else {
+		return &VersionError{Name: name, Problem: "version could not be parsed", RequiredVersion: minimumVersionString}
+	}
+
+	return nil
+}
+
+func StartsWithAny(s string, prefixes []string) bool {
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(s, prefix) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func IsURL(outputLocation string) bool {
+	return strings.HasPrefix(outputLocation, "http:") || strings.HasPrefix(outputLocation, "https:")
+}
+
+func RemoveIfExists(outputLocation string) error {
+	if _, err := os.Stat(outputLocation); err == nil {
+		// Output location exists, so remove it and all its contents
+		if err := os.RemoveAll(outputLocation); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func ManifestFormatListToStringList(manifestFormatList []ManifestFormat) []string {
+	stringList := make([]string, len(manifestFormatList))
+	for i, manifestFormat := range manifestFormatList {
+		stringList[i] = string(manifestFormat)
+	}
+	return stringList
 }

@@ -144,3 +144,25 @@ func NewMissingRequiredExclusiveFields(classRef interface{}, fieldName1, fieldNa
 func (e MissingRequiredExclusiveFields) Error() string {
 	return fmt.Sprintf("%s is missing a required field. Use exactly one of these fields: %s a %s or %s a %s", e.ClassName, e.Field1Name, e.Field1Type, e.Field2Name, e.Field2Type)
 }
+
+// VersionError represents an error due to an incorrect version of a dependency
+type VersionError struct {
+	Name            string
+	Problem         string
+	RequiredVersion string
+	ExactMatch      bool
+	Addendum        string
+}
+
+// Error returns the formatted error message
+func (e VersionError) Error() string {
+	orHigher := ""
+	if !e.ExactMatch {
+		orHigher = " or higher"
+	}
+	message := fmt.Sprintf("%s %s! Please install version %s%s of %s.", e.Name, e.Problem, e.RequiredVersion, orHigher, e.Name)
+	if e.Addendum != "" {
+		message += "\n" + e.Addendum
+	}
+	return message
+}

@@ -6,6 +6,9 @@ import (
 	"runtime"
 )
 
+// Binaries version
+var Version = "0.5.2"
+
 // Get the directory path where this file resides.
 var DirPath, _ = os.Getwd()
 
@@ -24,10 +27,10 @@ var CpuMap = map[string]string{
 }
 
 // The path to the installed FFmpeg binary.
-var Ffmpeg = fmt.Sprintf("%s/ffmpeg-%s-%s", DirPath, OsMap[runtime.GOOS], CpuMap[runtime.GOARCH])
+var Ffmpeg = fmt.Sprintf("ffmpeg-%s-%s", OsMap[runtime.GOOS], CpuMap[runtime.GOARCH])
 
 // The path to the installed FFprobe binary.
-var Ffprobe = fmt.Sprintf("%s/ffprobe-%s-%s", DirPath, OsMap[runtime.GOOS], CpuMap[runtime.GOARCH])
+var Ffprobe = fmt.Sprintf("ffprobe-%s-%s", OsMap[runtime.GOOS], CpuMap[runtime.GOARCH])
 
 // The path to the installed Shaka Packager binary.
-var Packager = fmt.Sprintf("%s/packager-%s-%s", DirPath, OsMap[runtime.GOOS], CpuMap[runtime.GOARCH])
+var Packager = fmt.Sprintf("packager-%s-%s", OsMap[runtime.GOOS], CpuMap[runtime.GOARCH])

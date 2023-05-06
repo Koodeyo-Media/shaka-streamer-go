@@ -47,15 +47,9 @@ func TestNewTranscoderNode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			defer os.Remove(vis.video.ipcPipe.WriteEnd())
-
 			node := NewTranscoderNode(tt.args.inputs, tt.args.pipelineConfig, tt.args.outputs, tt.args.index, tt.args.hermeticFFmpeg)
 			node.Start()
-			// node.Process.Wait()
-
-			// if got := NewTranscoderNode(tt.args.inputs, tt.args.pipelineConfig, tt.args.outputs, tt.args.index, tt.args.hermeticFFmpeg); !reflect.DeepEqual(got, tt.want) {
-			// 	t.Errorf("NewTranscoderNode() = %v, want %v", got, tt.want)
-			// }
+			os.Remove(vis.video.ipcPipe.WriteEnd())
 		})
 	}
 }

@@ -13,6 +13,7 @@ type Codec interface {
 
 type MediaOutputStream interface {
 	GetInput() Input
+	GetCodec() Codec
 	GetType() MediaType
 	GetIpcPipe() Pipe
 	IsDashOnly() bool
@@ -56,6 +57,10 @@ func NewOutputStream(t MediaType, in Input, c Codec, pipeDir string, skipTransco
 
 func (o OutputStream) GetInput() Input {
 	return o.Input
+}
+
+func (o OutputStream) GetCodec() Codec {
+	return o.Codec
 }
 
 func (o OutputStream) GetType() MediaType {
